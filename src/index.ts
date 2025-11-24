@@ -14,11 +14,11 @@ async function main() {
   console.log(chalk.bold.blue('AI Commit Message Generator'));
 
   // 1. Check API Key
-  const apiKey = process.env.GOOGLE_AI_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.error(chalk.red('\nError: GOOGLE_AI_KEY is missing.'));
+    console.error(chalk.red('\nError: OPENROUTER_API_KEY is missing.'));
     console.log(chalk.yellow('Please set it in your environment variables or a .env file.'));
-    console.log(`export GOOGLE_AI_KEY="your_key_here"`);
+    console.log(`export OPENROUTER_API_KEY="your_key_here"`);
     process.exit(1);
   }
 
@@ -39,10 +39,10 @@ async function main() {
       process.exit(1);
     }
 
-    spinner.text = 'Analyzing changes with Gemini AI...';
+    spinner.text = 'Analyzing changes with OpenRouter AI...';
     
     const message = await generateCommitMessage(apiKey, diff);
-    await clipboard.write(message);
+    await clipboard.write(`git commit -m '${message}'`);
 
     spinner.succeed('Commit message generated!');
 
