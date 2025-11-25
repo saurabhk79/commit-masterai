@@ -6,12 +6,21 @@ import * as dotenv from 'dotenv';
 import clipboard from 'clipboardy';
 import { getStagedDiff, hasStagedChanges } from './git.js';
 import { generateCommitMessage } from './ai.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // Load environment variables from a .env file if present
 dotenv.config();
 
 async function main() {
   console.log(chalk.bold.blue('AI Commit Message Generator'));
+
+  // Parse CLI flags
+  const args = process.argv.slice(2);
+  const shouldCommit = args.includes('--commit');
+  const shouldPush = args.includes('--push');
 
   // 1. Check API Key
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -45,6 +54,38 @@ async function main() {
     await clipboard.write(`git commit -m '${message}'`);
 
     spinner.succeed('Commit message generated!');
+
+    // If --commit is passed, create the commit automatically
+    if (shouldCommit) {
+      const safeMsg = message.replace(/\"/g, '\\\"');
+      spinner.start('Creating git commit...');
+      try {
+        await execAsync(`git commit -m "${safeMsg}"`);
+        spinner.succeed('Committed staged changes.');
+      } catch (err) {
+        spinner.fail('Failed to create git commit.');
+        console.error(chalk.red((err as Error).message));
+        process.exit(1);
+      }
+    }
+
+    // If --push is passed, push the current branch to origin
+    if (shouldPush) {
+      spinner.start('Pushing current branch to origin...');
+      try {
+        const { stdout: branchStdout } = await execAsync('git rev-parse --abbrev-ref HEAD');
+        const branch = branchStdout.trim();
+        if (!branch) {
+          throw new Error('Unable to determine current branch');
+        }
+        await execAsync(`git push origin ${branch}`);
+        spinner.succeed(`Pushed ${branch} to origin.`);
+      } catch (err) {
+        spinner.fail('Failed to push to origin.');
+        console.error(chalk.red((err as Error).message));
+        process.exit(1);
+      }
+    }
 
     console.log('\n' + chalk.green('--------------------------------------------------'));
     console.log(message);
