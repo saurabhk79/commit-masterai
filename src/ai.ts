@@ -27,7 +27,7 @@ async function callOpenRouter(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "x-ai/grok-4.1-fast",
+        model: "qwen/qwen3-coder:free",
         messages,
         max_tokens,
       }),
